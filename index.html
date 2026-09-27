@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LoanCalc Pro — Кредитный калькулятор</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+/* ═══════════════════════════════════════════════════
+   ROOT
+═══════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #07071a;
+  --glass:    rgba(255,255,255,.055);
+  --gb:       rgba(255,255,255,.09);
+  --accent:   #6C63FF;
+  --blue:     #00D2FF;
+  --green:    #00F5A0;
+  --red:      #FF6B6B;
+  --orange:   #FFB347;
+  --text:     #F0F0FF;
+  --muted:    rgba(240,240,255,.45);
+  --r:        14px;
+  --r-sm:     9px;
+}
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Ambient glows ── */
+.glow { position: fixed; border-radius: 50%; filter: blur(130px); opacity: .15;
+        pointer-events: none; z-index: 0; animation: flt 14s ease-in-out infinite alternate; }
+.g1 { width:700px;height:700px;background:var(--accent);top:-180px;left:-120px; }
+.g2 { width:500px;height:500px;background:var(--blue);bottom:-80px;right:-80px;animation-delay:-5s; }
+.g3 { width:300px;height:300px;background:#FF6584;top:45%;left:48%;animation-delay:-10s; }
+@keyframes flt { to { transform:translate(25px,35px) scale(1.08); } }
+
+canvas#stars { position:fixed;inset:0;z-index:0;pointer-events:none; }
+
+/* ── Navbar ── */
+nav {
+  position: fixed; top:0;left:0;right:0; z-index:200;
+  display: flex; align-items:center; justify-content:space-between;
+  padding: .9rem 2rem;
+  backdrop-filter: blur(22px); -webkit-backdrop-filter:blur(22px);
+  background: rgba(7,7,26,.65);
+  border-bottom: 1px solid var(--gb);
+}
+.nav-logo { display:flex;align-items:center;gap:.55rem;font-weight:800;font-size:1.1rem;
+            letter-spacing:-.02em;text-decoration:none;color:var(--text); }
+.nav-logo .li { width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--blue));
+                border-radius:8px;display:grid;place-items:center;font-size:.9rem; }
+.nav-right { display:flex;align-items:center;gap:.7rem; }
+.badge { font-size:.68rem;font-weight:700;padding:.2rem .6rem;border-radius:20px;
+         background:rgba(108,99,255,.18);border:1px solid rgba(108,99,255,.3);color:#a89fff; }
+.nav-btn { font-size:.78rem;font-weight:600;padding:.35rem .9rem;border-radius:20px;
+           border:1px solid var(--gb);background:transparent;color:var(--muted);cursor:pointer;
+           font-family:inherit;transition:all .2s; }
+.nav-btn:hover { background:rgba(255,255,255,.07);color:var(--text); }
+
+/* ── Hero ── */
+.hero { position:relative;z-index:1;text-align:center;padding:6.5rem 1.5rem 2.5rem; }
+.hero-tag { display:inline-flex;align-items:center;gap:.4rem;font-size:.72rem;font-weight:700;
+            letter-spacing:.08em;text-transform:uppercase;color:var(--blue);
+            background:rgba(0,210,255,.08);border:1px solid rgba(0,210,255,.2);
+            border-radius:20px;padding:.28rem .85rem;margin-bottom:1.2rem; }
+.hero-tag::before { content:'';width:6px;height:6px;background:var(--blue);
+                    border-radius:50%;animation:pulse 1.8s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.65)} }
+.hero h1 { font-size:clamp(2rem,5.5vw,3.6rem);font-weight:900;letter-spacing:-.04em;line-height:1.08;margin-bottom:.9rem; }
+.grad { background:linear-gradient(90deg,var(--accent),var(--blue),var(--green));
+        background-size:200%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+        background-clip:text;animation:gs 4s linear infinite; }
+@keyframes gs { to { background-position:200%; } }
+.hero p { font-size:.95rem;color:var(--muted);max-width:500px;margin:0 auto 2rem;line-height:1.7; }
+
+/* ── Layout ── */
+.wrap { position:relative;z-index:1;max-width:1160px;margin:0 auto;padding:0 1.2rem 5rem;
+        display:grid;grid-template-columns:480px 1fr;gap:1.4rem;align-items:start; }
+
+/* ── Cards ── */
+.card { background:var(--glass);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+        border:1px solid var(--gb);border-radius:var(--r);padding:1.8rem;position:relative;overflow:hidden; }
+.card::before { content:'';position:absolute;inset:0;
+                background:linear-gradient(135deg,rgba(255,255,255,.035) 0%,transparent 55%);
+                pointer-events:none; }
+.card-hd { font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+           color:var(--muted);margin-bottom:1.4rem;display:flex;align-items:center;gap:.45rem; }
+.card-hd::before { content:'';width:3px;height:13px;
+                   background:linear-gradient(var(--accent),var(--blue));border-radius:2px; }
+
+/* ── Section tabs inside form ── */
+.form-tabs { display:flex;gap:.3rem;margin-bottom:1.4rem;
+             background:rgba(255,255,255,.04);border:1px solid var(--gb);
+             border-radius:9px;padding:.25rem; }
+.ftab { flex:1;padding:.5rem;border:none;background:transparent;color:var(--muted);
+        font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;
+        border-radius:7px;transition:all .2s; }
+.ftab.active { background:linear-gradient(135deg,rgba(108,99,255,.3),rgba(0,210,255,.15));
+               color:var(--text);box-shadow:0 2px 8px rgba(108,99,255,.2); }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+
+/* ── Form groups ── */
+.fg { margin-bottom:1.2rem; }
+.fg:last-child { margin-bottom:0; }
+.fl { display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem; }
+.fl .fn { font-size:.82rem;font-weight:600;color:rgba(240,240,255,.78); }
+.fl .fh { font-size:.72rem;color:var(--muted); }
+.fl .fv { font-size:.78rem;font-weight:700;
+          background:linear-gradient(135deg,var(--accent),var(--blue));
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text; }
+
+/* ── Slider ── */
+.sl-wrap { position:relative;padding:.4rem 0 .3rem; }
+input[type="range"] {
+  -webkit-appearance:none;width:100%;height:5px;border-radius:3px;
+  background:rgba(255,255,255,.1);outline:none;cursor:pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance:none;width:20px;height:20px;border-radius:50%;
+  background:#fff;cursor:grab;
+  box-shadow:0 0 0 3px rgba(108,99,255,.45),0 3px 10px rgba(0,0,0,.5);
+  transition:box-shadow .2s,transform .15s;
+}
+input[type="range"]::-webkit-slider-thumb:active {
+  cursor:grabbing;transform:scale(1.25);
+  box-shadow:0 0 0 5px rgba(108,99,255,.3),0 5px 14px rgba(0,0,0,.5);
+}
+.sl-ticks { display:flex;justify-content:space-between;margin-bottom:.3rem; }
+.sl-ticks span { font-size:.62rem;color:rgba(240,240,255,.25); }
+
+/* ── Input ── */
+.iw { position:relative; }
+.iw input[type="number"], .iw input[type="date"], .iw select {
+  width:100%;background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.08);
+  border-radius:var(--r-sm);color:var(--text);font-family:inherit;font-size:.93rem;
+  font-weight:500;padding:.7rem 3rem .7rem 1rem;outline:none;
+  transition:border-color .25s,background .25s,box-shadow .25s;
+  -moz-appearance:textfield;
+}
+.iw input[type="number"]::-webkit-inner-spin-button,
+.iw input[type="number"]::-webkit-outer-spin-button { -webkit-appearance:none; }
+.iw input[type="date"] { padding-right:1rem;cursor:pointer; }
+.iw select { padding-right:1rem;cursor:pointer;appearance:none; }
+.iw input:focus, .iw select:focus {
+  border-color:var(--accent);background:rgba(108,99,255,.07);
+  box-shadow:0 0 0 3px rgba(108,99,255,.15);
+}
+.iw input.err { border-color:var(--red)!important;background:rgba(255,107,107,.07)!important;
+                box-shadow:0 0 0 3px rgba(255,107,107,.12)!important; }
+.iu { position:absolute;right:11px;top:50%;transform:translateY(-50%);
+      font-size:.78rem;font-weight:600;color:var(--muted);pointer-events:none; }
+.em { font-size:.71rem;color:var(--red);margin-top:.28rem;min-height:.85rem;display:block; }
+
+/* ── Two-col row ── */
+.row2 { display:grid;grid-template-columns:1fr 1fr;gap:.75rem; }
+
+/* ── Toggle pills ── */
+.pills { display:flex;gap:.35rem; }
+.pills input[type="radio"] { display:none; }
+.pills label {
+  flex:1;text-align:center;padding:.6rem .5rem;border:1.5px solid rgba(255,255,255,.08);
+  border-radius:8px;cursor:pointer;font-size:.78rem;font-weight:600;color:var(--muted);
+  transition:all .22s;line-height:1.3;
+}
+.pills label .pi { font-size:1rem;display:block;margin-bottom:.15rem; }
+.pills input[type="radio"]:checked + label {
+  border-color:var(--accent);color:var(--text);
+  background:linear-gradient(135deg,rgba(108,99,255,.22),rgba(0,210,255,.1));
+  box-shadow:0 3px 12px rgba(108,99,255,.2);
+}
+
+/* ── Divider ── */
+hr.dv { border:none;border-top:1px solid var(--gb);margin:1.2rem 0; }
+
+/* ── Buttons ── */
+.btn-calc {
+  width:100%;padding:.95rem;border:none;border-radius:var(--r-sm);
+  background:linear-gradient(135deg,var(--accent),var(--blue));
+  color:#fff;font-family:inherit;font-size:.98rem;font-weight:700;cursor:pointer;
+  position:relative;overflow:hidden;letter-spacing:.01em;
+  transition:transform .15s,box-shadow .25s;
+  box-shadow:0 8px 24px rgba(108,99,255,.4);
+  margin-top:1.2rem;
+}
+.btn-calc:hover { transform:translateY(-2px);box-shadow:0 12px 32px rgba(108,99,255,.5); }
+.btn-calc:active { transform:scale(.98); }
+.btn-calc::after { content:'';position:absolute;inset:0;
+                   background:linear-gradient(135deg,rgba(255,255,255,.12),transparent);
+                   opacity:0;transition:opacity .25s; }
+.btn-calc:hover::after { opacity:1; }
+
+.ripple { position:absolute;border-radius:50%;background:rgba(255,255,255,.3);
+          transform:scale(0);animation:rpl .55s linear;pointer-events:none; }
+@keyframes rpl { to { transform:scale(5);opacity:0; } }
+
+.btn-ghost {
+  width:100%;padding:.8rem;border:1.5px solid var(--gb);border-radius:var(--r-sm);
+  background:transparent;color:var(--muted);font-family:inherit;font-size:.88rem;
+  font-weight:600;cursor:pointer;transition:all .2s;margin-top:.5rem;
+}
+.btn-ghost:hover { background:rgba(255,255,255,.05);color:var(--text);border-color:rgba(255,255,255,.18); }
+
+/* ── Results column ── */
+.res-col { display:flex;flex-direction:column;gap:1.2rem; }
+
+/* ── Empty state ── */
+.empty { display:flex;flex-direction:column;align-items:center;justify-content:center;
+         padding:3rem 1.5rem;text-align:center;gap:.7rem; }
+.empty .ei { font-size:2.8rem;opacity:.4; }
+.empty .et { font-size:.83rem;color:var(--muted);line-height:1.65; }
+
+/* ── Metric tiles ── */
+.metrics { display:grid;grid-template-columns:repeat(2,1fr);gap:.7rem; }
+.mt {
+  background:rgba(255,255,255,.04);border:1px solid var(--gb);border-radius:12px;
+  padding:.95rem 1rem;position:relative;overflow:hidden;
+  transition:transform .2s,border-color .2s;cursor:default;
+}
+.mt:hover { transform:translateY(-2px);border-color:rgba(255,255,255,.16); }
+.mt::after { content:'';position:absolute;bottom:0;left:0;right:0;height:2px;border-radius:0 0 12px 12px; }
+.mt-b::after  { background:linear-gradient(90deg,var(--accent),var(--blue)); }
+.mt-p::after  { background:linear-gradient(90deg,#a78bfa,var(--accent)); }
+.mt-r::after  { background:linear-gradient(90deg,#FF6584,var(--red)); }
+.mt-g::after  { background:linear-gradient(90deg,var(--green),var(--blue)); }
+.mt-o::after  { background:linear-gradient(90deg,var(--orange),#FFD166); }
+.mt-w::after  { background:linear-gradient(90deg,rgba(255,255,255,.3),rgba(255,255,255,.1)); }
+.mt .mi { font-size:1.1rem;margin-bottom:.3rem;display:block; }
+.mt .ml { font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.22rem; }
+.mt .mv { font-size:1rem;font-weight:800;letter-spacing:-.02em; }
+.mt-b .mv  { color:var(--blue); }
+.mt-p .mv  { color:#a78bfa; }
+.mt-r .mv  { color:#FF6584; }
+.mt-g .mv  { color:var(--green); }
+.mt-o .mv  { color:var(--orange); }
+.mt-w .mv  { color:rgba(255,255,255,.6); }
+.mt .ms { font-size:.68rem;color:var(--muted);margin-top:.15rem; }
+
+/* ── PSK banner ── */
+.psk-banner {
+  background:linear-gradient(135deg,rgba(108,99,255,.18),rgba(0,210,255,.1));
+  border:1px solid rgba(108,99,255,.3);border-radius:12px;
+  padding:1rem 1.2rem;display:flex;align-items:center;gap:1rem;
+}
+.psk-icon { font-size:1.8rem;flex-shrink:0; }
+.psk-info .psk-label { font-size:.65rem;font-weight:700;letter-spacing:.08em;
+                       text-transform:uppercase;color:var(--muted);margin-bottom:.2rem; }
+.psk-info .psk-val { font-size:1.5rem;font-weight:900;color:var(--blue); }
+.psk-info .psk-sub { font-size:.72rem;color:var(--muted);margin-top:.1rem; }
+
+/* ── Donut ── */
+.chart-row { display:flex;align-items:center;gap:1.4rem; }
+.donut-wrap { position:relative;flex-shrink:0;width:110px;height:110px; }
+.donut-wrap svg { transform:rotate(-90deg); }
+.d-bg   { fill:none;stroke:rgba(255,255,255,.07);stroke-width:11; }
+.d-body { fill:none;stroke:url(#gb);stroke-width:11;stroke-linecap:round;
+          transition:stroke-dashoffset .85s cubic-bezier(.4,0,.2,1); }
+.d-over { fill:none;stroke:url(#go);stroke-width:11;stroke-linecap:round;
+          transition:stroke-dashoffset .85s cubic-bezier(.4,0,.2,1) .05s; }
+.dc { position:absolute;inset:0;display:flex;flex-direction:column;
+      align-items:center;justify-content:center;text-align:center; }
+.dc-p { font-size:1.35rem;font-weight:900;color:var(--text);line-height:1; }
+.dc-l { font-size:.58rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:.1rem; }
+.legend { flex:1; }
+.li { display:flex;align-items:center;gap:.5rem;padding:.35rem 0;
+      border-bottom:1px solid rgba(255,255,255,.05); }
+.li:last-child { border-bottom:none; }
+.ld { width:9px;height:9px;border-radius:2px;flex-shrink:0; }
+.ld-b { background:linear-gradient(135deg,var(--accent),var(--blue)); }
+.ld-o { background:linear-gradient(135deg,#FF6584,var(--red)); }
+.ld-i { background:linear-gradient(135deg,var(--orange),#FFD166); }
+.ln { flex:1; }
+.ln-n { font-size:.72rem;font-weight:600;color:rgba(240,240,255,.65); }
+.ln-v { font-size:.8rem;font-weight:700;color:var(--text); }
+
+/* ── Schedule ── */
+.sched-card { background:var(--glass);border:1px solid var(--gb);border-radius:var(--r);overflow:hidden; }
+.sched-hd {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1rem 1.3rem;border-bottom:1px solid var(--gb);cursor:pointer;
+  user-select:none;transition:background .2s;
+}
+.sched-hd:hover { background:rgba(255,255,255,.03); }
+.sched-htitle { font-size:.78rem;font-weight:700;color:rgba(240,240,255,.75);
+                display:flex;align-items:center;gap:.45rem; }
+.sched-actions { display:flex;align-items:center;gap:.5rem; }
+.sched-btn { font-size:.7rem;font-weight:600;padding:.28rem .7rem;
+             border:1px solid var(--gb);border-radius:6px;background:rgba(255,255,255,.04);
+             color:var(--muted);cursor:pointer;font-family:inherit;transition:all .2s; }
+.sched-btn:hover { background:rgba(255,255,255,.09);color:var(--text); }
+.chev { color:var(--muted);font-size:.7rem;transition:transform .3s;margin-left:.3rem; }
+.chev.open { transform:rotate(180deg); }
+.sched-body { display:none;max-height:340px;overflow-y:auto; }
+.sched-body::-webkit-scrollbar { width:3px; }
+.sched-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,.1);border-radius:2px; }
+
+table { width:100%;border-collapse:collapse;font-size:.77rem; }
+thead th {
+  background:rgba(255,255,255,.04);color:var(--muted);font-weight:600;
+  font-size:.63rem;text-transform:uppercase;letter-spacing:.06em;
+  padding:.6rem .75rem;text-align:right;position:sticky;top:0;white-space:nowrap;
+}
+thead th:first-child { text-align:center; }
+tbody tr { border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s; }
+tbody tr:hover { background:rgba(255,255,255,.03); }
+tbody td { padding:.5rem .75rem;text-align:right; }
+tbody td:first-child { text-align:center;color:var(--muted);font-weight:600; }
+.td-d  { color:rgba(240,240,255,.5);font-size:.7rem; }
+.td-p  { color:var(--blue);font-weight:700; }
+.td-i  { color:#FF8A8A; }
+.td-b  { color:var(--green); }
+.td-ins{ color:var(--orange);font-size:.75rem; }
+.td-r  { color:var(--muted); }
+.td-tot{ color:rgba(240,240,255,.6);font-size:.7rem; }
+
+/* ── Animate in ── */
+@keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:none} }
+.au { animation:fadeUp .4s cubic-bezier(.22,1,.36,1) both; }
+
+/* ── Print ── */
+@media print {
+  .g1,.g2,.g3,canvas#stars,nav,.hero,.form-col,.btn-calc,.btn-ghost,
+  .sched-actions,.sched-btn,.psk-banner,.donut-wrap,.chart-row { display:none!important; }
+  body { background:#fff;color:#000; }
+  .card,.sched-card { border:1px solid #ccc;background:#fff;backdrop-filter:none; }
+  .mt { border:1px solid #eee;background:#fafafa; }
+  .mt .mv { color:#222!important; }
+  .sched-body { display:block!important;max-height:none!important; }
+  thead th { background:#f0f0f0;color:#555; }
+  .td-p,.td-i,.td-b,.td-ins,.td-r { color:#222!important; }
+  .wrap { display:block; }
+  .res-col,.metrics { display:block; }
+}
+
+/* ── Responsive ── */
+@media (max-width:900px) {
+  .wrap { grid-template-columns:1fr;max-width:560px; }
+  .res-col { order:-1; }
+}
+@media (max-width:520px) {
+  nav { padding:.7rem 1rem; }
+  .hero { padding:5rem 1rem 2rem; }
+  .wrap { padding:0 .8rem 3rem; }
+  .card { padding:1.3rem; }
+  .metrics { grid-template-columns:1fr 1fr; }
+  .row2 { grid-template-columns:1fr; }
+}
+  </style>
+</head>
+<body>
+
+<!-- glows & stars -->
+<div class="glow g1"></div>
+<div class="glow g2"></div>
+<div class="glow g3"></div>
+<canvas id="stars"></canvas>
+
+<!-- ═══ NAVBAR ═══ -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="li">💳</div>LoanCalc <span style="color:var(--muted);font-weight:400;margin-left:.15rem">Pro</span>
+  </a>
+  <div class="nav-right">
+    <span class="badge">Профессиональный</span>
+    <button class="nav-btn" id="nav-print">🖨 Печать</button>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<div class="hero">
+  <div class="hero-tag">Финансовый расчёт</div>
+  <h1>Кредитный<br><span class="grad">калькулятор</span></h1>
+  <p>Полная стоимость кредита, ПСК, ЭСП, страховка, комиссии — всё по банковским стандартам</p>
+</div>
+
+<!-- ═══ MAIN ═══ -->
+<div class="wrap">
+
+  <!-- ── Форма ── -->
+  <div class="form-col">
+    <div class="card">
+      <div class="card-hd">Параметры кредита</div>
+
+      <!-- Tabs -->
+      <div class="form-tabs">
+        <button class="ftab active" data-tab="basic">Основное</button>
+        <button class="ftab" data-tab="extra">Доп. расходы</button>
+        <button class="ftab" data-tab="prepay">Досрочно</button>
+      </div>
+
+      <!-- ── Tab: Основное ── -->
+      <div class="tab-panel active" id="tab-basic">
+
+        <!-- Сумма -->
+        <div class="fg">
+          <div class="fl"><span class="fn">Сумма кредита</span><span class="fh">₽</span></div>
+          <div class="iw">
+            <input type="number" id="amount" placeholder="500 000" min="10000" max="100000000" step="1000"/>
+            <span class="iu">₽</span>
+          </div>
+          <span class="em" id="err-amount"></span>
+        </div>
+
+        <!-- Ставка -->
+        <div class="fg">
+          <div class="fl">
+            <span class="fn">Годовая ставка</span>
+            <span class="fv" id="rate-bubble">12.0 %</span>
+          </div>
+          <div class="sl-wrap">
+            <div class="sl-ticks"><span>1%</span><span>10%</span><span>25%</span><span>50%</span></div>
+            <input type="range" id="rate-sl" min="1" max="50" step="0.1" />
+          </div>
+          <div class="iw" style="margin-top:.55rem">
+            <input type="number" id="rate" placeholder="12" min="0.1" max="200" step="0.1"/>
+            <span class="iu">%</span>
+          </div>
+          <span class="em" id="err-rate"></span>
+        </div>
+
+        <!-- Срок -->
+        <div class="fg">
+          <div class="fl">
+            <span class="fn">Срок кредита</span>
+            <span class="fv" id="term-bubble">60 мес.</span>
+          </div>
+          <div class="sl-wrap">
+            <div class="sl-ticks"><span>1</span><span>60</span><span>180</span><span>360</span></div>
+            <input type="range" id="term-sl" min="1" max="360" step="1" />
+          </div>
+          <div class="iw" style="margin-top:.55rem">
+            <input type="number" id="term" placeholder="60" min="1" max="360" step="1"/>
+            <span class="iu">мес.</span>
+          </div>
+          <span class="em" id="err-term"></span>
+        </div>
+
+        <!-- Тип платежа -->
+        <div class="fg">
+          <div class="fl"><span class="fn">Тип платежа</span></div>
+          <div class="pills">
+            <input type="radio" name="ptype" id="r-ann" value="annuity" checked/>
+            <label for="r-ann"><span class="pi">📊</span>Аннуитетный<br><small style="font-weight:400;opacity:.6">Равные платежи</small></label>
+            <input type="radio" name="ptype" id="r-dif" value="diff"/>
+            <label for="r-dif"><span class="pi">📉</span>Дифференц.<br><small style="font-weight:400;opacity:.6">Убывающие платежи</small></label>
+          </div>
+        </div>
+
+        <!-- Дата первого платежа -->
+        <div class="fg">
+          <div class="fl"><span class="fn">Дата первого платежа</span><span class="fh">необязательно</span></div>
+          <div class="iw">
+            <input type="date" id="first-date"/>
+          </div>
+        </div>
+
+      </div><!-- /tab-basic -->
+
+      <!-- ── Tab: Доп. расходы ── -->
+      <div class="tab-panel" id="tab-extra">
+
+        <!-- Первоначальный взнос -->
+        <div class="fg">
+          <div class="fl"><span class="fn">Первоначальный взнос</span></div>
+          <div class="row2">
+            <div class="iw">
+              <input type="number" id="down-amt" placeholder="0" min="0" max="100000000" step="1000"/>
+              <span class="iu">₽</span>
+            </div>
+            <div class="iw">
+              <input type="number" id="down-pct" placeholder="0" min="0" max="99" step="0.5"/>
+              <span class="iu">%</span>
+            </div>
+          </div>
+          <span class="em" id="err-down"></span>
+        </div>
+
+        <hr class="dv"/>
+
+        <!-- Страховка -->
+        <div class="fg">
+          <div class="fl"><span class="fn">Страхование жизни / имущества</span></div>
+          <div class="row2">
+            <div class="iw">
+              <input type="number" id="ins-rate" placeholder="0.5" min="0" max="30" step="0.1"/>
+              <span class="iu">% / год</span>
+            </div>
+            <div class="iw">
+              <select id="ins-base">
+                <option value="initial">От суммы кредита</option>
+                <option value="balance">От остатка долга</option>
+                <option value="fixed">Фиксированная</option>
+              </select>
+            </div>
+          </div>
+          <div class="iw" id="ins-fixed-wrap" style="margin-top:.5rem;display:none">
+            <input type="number" id="ins-fixed" placeholder="5000" min="0" step="100"/>
+            <span class="iu">₽ / мес.</span>
+          </div>
+        </div>
+
+        <!-- Комиссия -->
+        <div class="fg">
+          <div class="fl"><span class="fn">Комиссия банка</span></div>
+          <div class="row2">
+            <div class="iw">
+              <input type="number" id="comm-amt" placeholder="0" min="0" max="1000000" step="100"/>
+              <span class="iu">₽ разово</span>
+            </div>
+            <div class="iw">
+              <input type="number" id="comm-pct" placeholder="0" min="0" max="10" step="0.1"/>
+              <span class="iu">% разово</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ежемесячная комиссия -->
+        <div class="fg">
+          <div class="fl"><span class="fn">Ежемесячная комиссия</span></div>
+          <div class="row2">
+            <div class="iw">
+              <input type="number" id="mcomm-amt" placeholder="0" min="0" max="100000" step="50"/>
+              <span class="iu">₽ / мес.</span>
+            </div>
+            <div class="iw">
+              <input type="number" id="mcomm-pct" placeholder="0" min="0" max="5" step="0.05"/>
+              <span class="iu">% / мес.</span>
+            </div>
+          </div>
+        </div>
+
+        <hr class="dv"/>
+
+        <!-- Налоговый вычет -->
+        <div class="fg">
+          <div class="fl">
+            <span class="fn">Налоговый вычет (ипотека)</span>
+            <span class="fh">13% НДФЛ</span>
+          </div>
+          <div class="pills" style="max-width:200px">
+            <input type="radio" name="ndfl" id="nd-no" value="0" checked/>
+            <label for="nd-no">Нет</label>
+            <input type="radio" name="ndfl" id="nd-yes" value="1"/>
+            <label for="nd-yes">Да</label>
+          </div>
+        </div>
+
+      </div><!-- /tab-extra -->
+
+      <!-- ── Tab: Досрочно ── -->
+      <div class="tab-panel" id="tab-prepay">
+
+        <div class="fg">
+          <div class="fl"><span class="fn">Разовое досрочное погашение</span><span class="fh">после 1-го платежа</span></div>
+          <div class="iw">
+            <input type="number" id="prepay-amt" placeholder="0" min="0" max="100000000" step="1000"/>
+            <span class="iu">₽</span>
+          </div>
+          <span class="em" id="err-prepay"></span>
+        </div>
+
+        <div class="fg">
+          <div class="fl"><span class="fn">Стратегия при досрочном погашении</span></div>
+          <div class="pills">
+            <input type="radio" name="prepay-strat" id="ps-term" value="term" checked/>
+            <label for="ps-term"><span class="pi">⏱</span>Уменьшить<br>срок</label>
+            <input type="radio" name="prepay-strat" id="ps-pay" value="payment"/>
+            <label for="ps-pay"><span class="pi">💸</span>Уменьшить<br>платёж</label>
+          </div>
+        </div>
+
+        <hr class="dv"/>
+
+        <div class="fg">
+          <div class="fl"><span class="fn">Регулярное досрочное</span><span class="fh">каждый месяц</span></div>
+          <div class="iw">
+            <input type="number" id="extra-monthly" placeholder="0" min="0" max="10000000" step="500"/>
+            <span class="iu">₽ / мес.</span>
+          </div>
+        </div>
+
+        <p style="font-size:.73rem;color:var(--muted);line-height:1.6;margin-top:.5rem">
+          Регулярные доплаты идут сверх обязательного платежа каждый месяц.<br>
+          Стратегия применяется ко всем досрочным погашениям.
+        </p>
+
+      </div><!-- /tab-prepay -->
+
+      <button class="btn-calc" id="btn-calc">Рассчитать кредит</button>
+      <button class="btn-ghost" id="btn-reset">↺ &nbsp;Очистить форму</button>
+    </div>
+  </div><!-- /form-col -->
+
+  <!-- ── Результаты ── -->
+  <div class="res-col" id="res-col">
+
+    <!-- empty -->
+    <div class="card" id="state-empty">
+      <div class="empty">
+        <div class="ei">🧮</div>
+        <div class="et">Заполните параметры кредита<br>и нажмите <strong>«Рассчитать»</strong></div>
+      </div>
+    </div>
+
+    <!-- result block -->
+    <div id="res-block" style="display:none;flex-direction:column;gap:1.2rem;">
+
+      <!-- ПСК banner -->
+      <div class="psk-banner au" id="psk-banner">
+        <div class="psk-icon">📌</div>
+        <div class="psk-info">
+          <div class="psk-label">ПСК — Полная стоимость кредита</div>
+          <div class="psk-val" id="psk-val">—</div>
+          <div class="psk-sub" id="psk-sub">Включает все платежи, страховку, комиссии</div>
+        </div>
+      </div>
+
+      <!-- Metrics 2x3 -->
+      <div class="metrics" id="metrics-grid">
+        <div class="mt mt-b au" style="animation-delay:.04s">
+          <span class="mi">💰</span>
+          <div class="ml">Платёж / мес.</div>
+          <div class="mv" id="r-monthly">—</div>
+          <div class="ms" id="r-monthly-sub"></div>
+        </div>
+        <div class="mt mt-p au" style="animation-delay:.08s">
+          <span class="mi">📋</span>
+          <div class="ml">Итого выплат</div>
+          <div class="mv" id="r-total">—</div>
+          <div class="ms" id="r-total-sub"></div>
+        </div>
+        <div class="mt mt-r au" style="animation-delay:.12s">
+          <span class="mi">📈</span>
+          <div class="ml">Переплата %</div>
+          <div class="mv" id="r-overpct">—</div>
+          <div class="ms" id="r-over">—</div>
+        </div>
+        <div class="mt mt-g au" style="animation-delay:.16s">
+          <span class="mi">🗓</span>
+          <div class="ml">Срок / конец</div>
+          <div class="mv" id="r-enddate">—</div>
+          <div class="ms" id="r-termstr">—</div>
+        </div>
+        <div class="mt mt-o au" style="animation-delay:.20s">
+          <span class="mi">🛡</span>
+          <div class="ml">Страховка итого</div>
+          <div class="mv" id="r-ins">—</div>
+          <div class="ms" id="r-ins-sub"></div>
+        </div>
+        <div class="mt mt-w au" style="animation-delay:.24s">
+          <span class="mi">🏦</span>
+          <div class="ml">Комиссии итого</div>
+          <div class="mv" id="r-comm">—</div>
+          <div class="ms" id="r-comm-sub"></div>
+        </div>
+      </div>
+
+      <!-- Donut chart -->
+      <div class="card au" style="padding:1.4rem;animation-delay:.28s">
+        <div class="card-hd">Структура выплат</div>
+        <div class="chart-row">
+          <div class="donut-wrap">
+            <svg width="110" height="110" viewBox="0 0 110 110">
+              <defs>
+                <linearGradient id="gb" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#6C63FF"/>
+                  <stop offset="100%" stop-color="#00D2FF"/>
+                </linearGradient>
+                <linearGradient id="go" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FF6584"/>
+                  <stop offset="100%" stop-color="#FF6B6B"/>
+                </linearGradient>
+                <linearGradient id="gi" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#FFB347"/>
+                  <stop offset="100%" stop-color="#FFD166"/>
+                </linearGradient>
+              </defs>
+              <circle class="d-bg"   cx="55" cy="55" r="44"/>
+              <circle class="d-body" id="d-body" cx="55" cy="55" r="44"
+                      stroke-dasharray="276.46" stroke-dashoffset="276.46"/>
+              <circle class="d-over" id="d-over" cx="55" cy="55" r="44"
+                      stroke-dasharray="276.46" stroke-dashoffset="276.46"/>
+              <!-- insurance arc — reuse same circle trick -->
+              <circle id="d-ins" cx="55" cy="55" r="44"
+                      fill="none" stroke="url(#gi)" stroke-width="11" stroke-linecap="round"
+                      stroke-dasharray="276.46" stroke-dashoffset="276.46"
+                      style="transition:stroke-dashoffset .85s cubic-bezier(.4,0,.2,1) .1s"/>
+            </svg>
+            <div class="dc">
+              <span class="dc-p" id="d-pct">0%</span>
+              <span class="dc-l">тело</span>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="li"><div class="ld ld-b"></div>
+              <div class="ln"><div class="ln-n">Тело кредита</div><div class="ln-v" id="l-body">—</div></div>
+            </div>
+            <div class="li"><div class="ld ld-o"></div>
+              <div class="ln"><div class="ln-n">Переплата (проценты)</div><div class="ln-v" id="l-over">—</div></div>
+            </div>
+            <div class="li"><div class="ld ld-i"></div>
+              <div class="ln"><div class="ln-n">Страховка + комиссии</div><div class="ln-v" id="l-ins">—</div></div>
+            </div>
+            <div class="li"><div class="ld" style="background:rgba(255,255,255,.2)"></div>
+              <div class="ln"><div class="ln-n">Налоговый вычет (возврат)</div><div class="ln-v" id="l-ndfl">—</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedule -->
+      <div class="sched-card au" style="animation-delay:.32s">
+        <div class="sched-hd" id="sched-toggle">
+          <div class="sched-htitle">📅 График платежей</div>
+          <div class="sched-actions">
+            <button class="sched-btn" id="btn-csv" onclick="event.stopPropagation()">⬇ CSV</button>
+            <span class="chev" id="chev">▼</span>
+          </div>
+        </div>
+        <div class="sched-body" id="sched-body-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Дата</th>
+                <th>Платёж</th>
+                <th>Проценты</th>
+                <th>Тело</th>
+                <th>Страх.</th>
+                <th>Комис.</th>
+                <th>Итого</th>
+                <th>Остаток</th>
+              </tr>
+            </thead>
+            <tbody id="sched-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /res-block -->
+  </div><!-- /res-col -->
+</div><!-- /wrap -->
+
+<footer style="position:relative;z-index:1;text-align:center;padding:1.5rem 1rem 3rem;color:var(--muted);font-size:.75rem;border-top:1px solid var(--gb)">
+  © 2026 LoanCalc Pro &nbsp;·&nbsp; Расчёты носят информационный характер и не являются офертой банка
+</footer>
+
+<!-- ════════════════════════════════════════════════════
+     SCRIPT
+════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ── Stars ─────────────────────────────────────────────────── */
+(function(){
+  const c=document.getElementById('stars'),ctx=c.getContext('2d');
+  let W,H,pts;
+  function resize(){ W=c.width=innerWidth; H=c.height=innerHeight; }
+  function mk(){ return{x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.2+.2,
+    dx:(Math.random()-.5)*.25,dy:-(Math.random()*.4+.08),a:Math.random()*.35+.05}; }
+  function init(){ resize(); pts=Array.from({length:70},mk); }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,6.28);
+      ctx.fillStyle=`rgba(180,170,255,${p.a})`; ctx.fill();
+      p.x+=p.dx; p.y+=p.dy;
+      if(p.y<-4){ p.y=H+4; p.x=Math.random()*W; }
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+    });
+    requestAnimationFrame(draw);
+  }
+  addEventListener('resize',resize); init(); draw();
+})();
+
+/* ── Slider helpers ─────────────────────────────────────────── */
+function slFill(sl){
+  const pct=((sl.value-sl.min)/(sl.max-sl.min))*100;
+  sl.style.background=`linear-gradient(to right,#6C63FF 0%,#00D2FF ${pct}%,rgba(255,255,255,.1) ${pct}%)`;
+}
+
+/**
+ * Bind slider ↔ number input.
+ * defVal — default value to set on BOTH at init.
+ */
+function bindSlider(slId, inId, bubbleId, suffix, defVal){
+  const sl=document.getElementById(slId);
+  const inp=document.getElementById(inId);
+  const bub=document.getElementById(bubbleId);
+
+  // SET INITIAL VALUE from defVal, not from HTML attribute
+  sl.value  = defVal;
+  inp.value = defVal;
+  bub.textContent = defVal + ' ' + suffix;
+  slFill(sl);
+
+  sl.addEventListener('input',()=>{
+    inp.value = parseFloat(sl.value);
+    bub.textContent = parseFloat(sl.value) + ' ' + suffix;
+    slFill(sl);
+    liveRecalc();
+  });
+  inp.addEventListener('input',()=>{
+    const v=parseFloat(inp.value);
+    if(!isNaN(v)){
+      const c=Math.min(Math.max(v,parseFloat(sl.min)),parseFloat(sl.max));
+      sl.value=c; bub.textContent=c+' '+suffix; slFill(sl);
+    }
+  });
+}
+
+bindSlider('rate-sl','rate','rate-bubble','%', 12);
+bindSlider('term-sl','term','term-bubble','мес.', 60);
+
+/* ── Tabs ───────────────────────────────────────────────────── */
+document.querySelectorAll('.ftab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.ftab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+  });
+});
+
+/* ── Insurance base toggle ──────────────────────────────────── */
+document.getElementById('ins-base').addEventListener('change',function(){
+  document.getElementById('ins-fixed-wrap').style.display =
+    this.value==='fixed' ? 'block' : 'none';
+});
+
+/* ── Down-payment sync (amount ↔ %) ──────────────────────────── */
+document.getElementById('down-amt').addEventListener('input',()=>{
+  const amt=parseFloat(document.getElementById('amount').value)||0;
+  const d=parseFloat(document.getElementById('down-amt').value)||0;
+  if(amt>0) document.getElementById('down-pct').value=(d/amt*100).toFixed(1);
+});
+document.getElementById('down-pct').addEventListener('input',()=>{
+  const amt=parseFloat(document.getElementById('amount').value)||0;
+  const p=parseFloat(document.getElementById('down-pct').value)||0;
+  document.getElementById('down-amt').value=Math.round(amt*p/100);
+});
+
+/* ── Validation ─────────────────────────────────────────────── */
+function vf(id,eid,{min,max,lbl,req=true}){
+  const el=document.getElementById(id), err=document.getElementById(eid);
+  const raw=el.value.trim();
+  el.classList.remove('err'); err.textContent='';
+  if(raw===''){
+    if(req){el.classList.add('err');err.textContent=`Введите ${lbl}.`;return null;}
+    return 0;
+  }
+  const v=parseFloat(raw);
+  if(isNaN(v)){el.classList.add('err');err.textContent='Введите число.';return null;}
+  if(v<min){el.classList.add('err');err.textContent=`Мин: ${min.toLocaleString('ru-RU')}.`;return null;}
+  if(v>max){el.classList.add('err');err.textContent=`Макс: ${max.toLocaleString('ru-RU')}.`;return null;}
+  return v;
+}
+
+function readInputs(){
+  const amount = vf('amount','err-amount',{min:10000,max:100000000,lbl:'сумму кредита'});
+  const rate   = vf('rate','err-rate',{min:0.1,max:200,lbl:'процентную ставку'});
+  const term   = vf('term','err-term',{min:1,max:360,lbl:'срок в месяцах'});
+  const prepay = vf('prepay-amt','err-prepay',{min:0,max:100000000,lbl:'сумму',req:false});
+  if([amount,rate,term,prepay].some(v=>v===null)) return null;
+
+  // Down payment
+  const downAmt = parseFloat(document.getElementById('down-amt').value)||0;
+  const downPct = parseFloat(document.getElementById('down-pct').value)||0;
+  let down = downAmt||Math.round(amount*(downPct/100));
+  if(down>=amount){ document.getElementById('err-down').textContent='Взнос не может быть >= суммы кредита.'; return null; }
+  document.getElementById('err-down').textContent='';
+
+  // Insurance
+  const insRate  = parseFloat(document.getElementById('ins-rate').value)||0;
+  const insBase  = document.getElementById('ins-base').value;
+  const insFixed = parseFloat(document.getElementById('ins-fixed').value)||0;
+
+  // Commissions
+  const commAmt  = parseFloat(document.getElementById('comm-amt').value)||0;
+  const commPct  = parseFloat(document.getElementById('comm-pct').value)||0;
+  const mcommAmt = parseFloat(document.getElementById('mcomm-amt').value)||0;
+  const mcommPct = parseFloat(document.getElementById('mcomm-pct').value)||0;
+
+  // Misc
+  const ptype    = document.querySelector('input[name="ptype"]:checked').value;
+  const pstrat   = document.querySelector('input[name="prepay-strat"]:checked').value;
+  const extraMon = parseFloat(document.getElementById('extra-monthly').value)||0;
+  const ndfl     = document.querySelector('input[name="ndfl"]:checked').value==='1';
+  const firstDate= document.getElementById('first-date').value;
+
+  return { amount, rate, term, prepay, down, insRate, insBase, insFixed,
+           commAmt, commPct, mcommAmt, mcommPct,
+           ptype, pstrat, extraMon, ndfl, firstDate };
+}
+
+/* ── Calculation engine ─────────────────────────────────────── */
+function buildSchedule(inp){
+  const { amount, rate, term, prepay, down,
+          insRate, insBase, insFixed,
+          commAmt, commPct, mcommAmt, mcommPct,
+          ptype, pstrat, extraMon, firstDate } = inp;
+
+  const principal = amount - down;
+  const r = rate / 100 / 12;
+  const oneTimeComm = commAmt + (commPct/100)*principal;
+
+  // starting date
+  let curDate = firstDate ? new Date(firstDate + 'T12:00:00')
+                          : (()=>{ const d=new Date(); d.setMonth(d.getMonth()+1); d.setDate(1); return d; })();
+
+  // annuity monthly (used for initial calc)
+  function annuityPayment(p, r_, n){
+    if(r_===0) return p/n;
+    return p * r_ * Math.pow(1+r_,n) / (Math.pow(1+r_,n)-1);
+  }
+
+  let balance = principal;
+  let months  = term;
+  let rows    = [];
+  let prepayApplied = false;
+
+  // If annuity, compute initial monthly
+  let annuityM = ptype==='annuity' ? annuityPayment(balance, r, months) : 0;
+
+  for(let i=1; i<=months; i++){
+    const interest = balance * r;
+
+    // insurance for this month
+    let ins = 0;
+    if(insBase==='initial')  ins = principal * (insRate/100) / 12;
+    else if(insBase==='balance') ins = balance * (insRate/100) / 12;
+    else if(insBase==='fixed')   ins = insFixed;
+
+    // monthly commission
+    const mcomm = mcommAmt + (mcommPct/100)*balance;
+
+    // principal repayment
+    let bodyPayment, totalBasePayment;
+    if(ptype==='annuity'){
+      bodyPayment = annuityM - interest;
+      totalBasePayment = annuityM;
+    } else {
+      bodyPayment = balance / (months - i + 1);
+      totalBasePayment = bodyPayment + interest;
+    }
+
+    // Clamp body (last payment rounding)
+    if(bodyPayment > balance) bodyPayment = balance;
+
+    balance -= bodyPayment;
+
+    // Dosrochnoe pogashenie after first payment
+    let extraBody = 0;
+    if(i===1 && prepay>0 && !prepayApplied){
+      extraBody = Math.min(prepay, balance);
+      balance  -= extraBody;
+      prepayApplied = true;
+    }
+
+    // Regular extra monthly
+    if(extraMon>0 && balance>0){
+      const ex=Math.min(extraMon, balance);
+      extraBody += ex;
+      balance   -= ex;
+    }
+
+    const totalRow = totalBasePayment + ins + mcomm;
+
+    rows.push({
+      num:  i,
+      date: new Date(curDate),
+      basePayment: totalBasePayment,
+      interest,
+      body: bodyPayment + extraBody,
+      ins,
+      mcomm,
+      total: totalRow,
+      balance: Math.max(0, balance),
+    });
+
+    // Advance date
+    curDate = new Date(curDate);
+    curDate.setMonth(curDate.getMonth()+1);
+
+    if(balance <= 0.01) { balance=0; break; }
+
+    // If pstrat = reduce payment (annuity): recalc monthly after prepay
+    if(extraBody>0 && ptype==='annuity' && pstrat==='payment' && balance>0){
+      const remMonths = months - i;
+      if(remMonths>0) annuityM = annuityPayment(balance, r, remMonths);
+    }
+    // If pstrat = reduce term (annuity): keep monthly, term shrinks naturally (balance hits 0 early)
+  }
+
+  return { rows, oneTimeComm, principal };
+}
+
+/* ── ПСК / Effective rate via Newton-Raphson IRR ──────────────── */
+/**
+ * Calculates IRR (monthly) then annualises → PSK as per Russian CBR formula:
+ * PSK % = (IRR_monthly * 12) * 100
+ * The cash-flow: CF[0] = -principal+oneTimeComm (outflow negative),
+ *                CF[i] = total payment (inflow positive)
+ */
+function calcPSK(principal, oneTimeComm, rows){
+  if(rows.length===0) return 0;
+
+  // Cash flows: t=0 is loan disbursement (negative), then monthly payments
+  const cf = [-(principal - oneTimeComm)];
+  rows.forEach(r=>cf.push(r.total));
+
+  // Newton-Raphson IRR
+  function npv(rate){
+    return cf.reduce((sum,c,t)=>sum + c/Math.pow(1+rate,t), 0);
+  }
+  function npvDeriv(rate){
+    return cf.reduce((sum,c,t)=>sum - t*c/Math.pow(1+rate,t+1), 0);
+  }
+
+  let x = 0.01; // initial guess (1% monthly)
+  for(let i=0;i<200;i++){
+    const fx = npv(x);
+    const dfx= npvDeriv(x);
+    if(Math.abs(dfx)<1e-12) break;
+    const x1 = x - fx/dfx;
+    if(Math.abs(x1-x)<1e-10){ x=x1; break; }
+    x=x1;
+  }
+  // PSK = monthly IRR * 12 * 100 (annual percentage)
+  return Math.max(0, x * 12 * 100);
+}
+
+/* ── Formatting helpers ─────────────────────────────────────── */
+const rub = n =>
+  new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',
+    minimumFractionDigits:0,maximumFractionDigits:0}).format(n);
+const fmtD = d =>
+  d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+
+/* ── Animated number counter ────────────────────────────────── */
+function countUp(el, from, to, ms, fmt){
+  const t0=performance.now();
+  const step=ts=>{
+    const p=Math.min((ts-t0)/ms,1), e=1-Math.pow(1-p,3);
+    el.textContent=fmt(from+(to-from)*e);
+    if(p<1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ── Update donut ───────────────────────────────────────────── */
+function updateDonut(bodyPct, overPct){
+  const C=2*Math.PI*44; // 276.46 for r=44
+  const gap=3;
+  const bodyLen = C*(bodyPct/100);
+  const overLen = C*(overPct/100);
+  const insLen  = C*((100-bodyPct-overPct)/100);
+  const insLen2 = Math.max(0,insLen);
+
+  const dBody=document.getElementById('d-body');
+  const dOver=document.getElementById('d-over');
+  const dIns =document.getElementById('d-ins');
+
+  dBody.setAttribute('stroke-dasharray',`${Math.max(0,bodyLen-gap)} ${C-(bodyLen-gap)}`);
+  dBody.setAttribute('stroke-dashoffset','0');
+
+  dOver.setAttribute('stroke-dasharray',`${Math.max(0,overLen-gap)} ${C-(overLen-gap)}`);
+  dOver.setAttribute('stroke-dashoffset', -(bodyLen));
+
+  dIns.setAttribute('stroke-dasharray',`${Math.max(0,insLen2-gap)} ${C-(insLen2-gap)}`);
+  dIns.setAttribute('stroke-dashoffset', -(bodyLen+overLen));
+
+  document.getElementById('d-pct').textContent = bodyPct+'%';
+}
+
+/* ── Render results ─────────────────────────────────────────── */
+function renderResults(inp, result){
+  const { rows, oneTimeComm, principal } = result;
+  if(rows.length===0) return;
+
+  const totalBase = rows.reduce((s,r)=>s+r.basePayment,0);
+  const totalInt  = rows.reduce((s,r)=>s+r.interest,0);
+  const totalIns  = rows.reduce((s,r)=>s+r.ins,0);
+  const totalComm = rows.reduce((s,r)=>s+r.mcomm,0) + oneTimeComm;
+  const totalAll  = totalBase + totalIns + totalComm;
+  const overAmt   = totalAll - principal;
+  const overPct   = overAmt / principal * 100;
+
+  const n = rows.length;
+  const firstPay = rows[0].basePayment;
+  const endDate  = rows[n-1].date;
+
+  // PSK
+  const psk = calcPSK(principal, oneTimeComm, rows);
+
+  // NDFL
+  const ndflReturn = inp.ndfl ? Math.min(totalInt, 3000000) * 0.13 : 0;
+
+  // ── Tiles ──
+  countUp(document.getElementById('r-monthly'), 0, firstPay, 700, rub);
+  document.getElementById('r-monthly-sub').textContent =
+    inp.ptype==='annuity' ? 'Одинаковый каждый месяц' : 'Первый (далее убывает)';
+
+  countUp(document.getElementById('r-total'), 0, totalAll, 900, rub);
+  document.getElementById('r-total-sub').textContent =
+    `Осн. ${rub(totalBase)} + доп. ${rub(totalIns+totalComm)}`;
+
+  countUp(document.getElementById('r-overpct'), 0, overPct, 800, v=>v.toFixed(1)+' %');
+  document.getElementById('r-over').textContent = rub(overAmt);
+
+  const yrs=Math.floor(n/12), mos=n%12;
+  document.getElementById('r-enddate').textContent  = fmtD(endDate);
+  document.getElementById('r-termstr').textContent  =
+    (yrs>0?yrs+' л. ':'')+mos+' мес. ('+n+' платежей)';
+
+  document.getElementById('r-ins').textContent      = rub(totalIns);
+  document.getElementById('r-ins-sub').textContent  = totalIns>0 ? `Ставка: ${inp.insRate||0}% / год` : 'Не задана';
+
+  document.getElementById('r-comm').textContent     = rub(totalComm);
+  document.getElementById('r-comm-sub').textContent = oneTimeComm>0 ? `Разово: ${rub(oneTimeComm)}` : 'Не заданы';
+
+  // PSK banner
+  document.getElementById('psk-val').textContent = psk.toFixed(2)+' % годовых';
+  document.getElementById('psk-sub').textContent =
+    `Итого: ${rub(totalAll)} · Переплата: ${rub(overAmt)}`;
+
+  // Donut
+  const bodyPct2 = Math.round(principal/totalAll*100);
+  const overPct2 = Math.round(totalInt/totalAll*100);
+  updateDonut(bodyPct2, overPct2);
+
+  document.getElementById('l-body').textContent = rub(principal);
+  document.getElementById('l-over').textContent = rub(totalInt);
+  document.getElementById('l-ins').textContent  = rub(totalIns+totalComm);
+  document.getElementById('l-ndfl').textContent = ndflReturn>0 ? '−'+rub(ndflReturn)+' возврат НДФЛ' : 'Не применяется';
+
+  // Schedule table
+  const tbody=document.getElementById('sched-tbody');
+  tbody.innerHTML='';
+  rows.forEach(row=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${row.num}</td>
+      <td class="td-d">${fmtD(row.date)}</td>
+      <td class="td-p">${rub(row.basePayment)}</td>
+      <td class="td-i">${rub(row.interest)}</td>
+      <td class="td-b">${rub(row.body)}</td>
+      <td class="td-ins">${row.ins>0?rub(row.ins):'—'}</td>
+      <td class="td-ins">${row.mcomm>0?rub(row.mcomm):'—'}</td>
+      <td class="td-tot">${rub(row.total)}</td>
+      <td class="td-r">${rub(row.balance)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Show
+  document.getElementById('state-empty').style.display='none';
+  const rb=document.getElementById('res-block');
+  rb.style.display='flex';
+  rb.querySelectorAll('.au').forEach(el=>{
+    el.style.animation='none'; el.getBoundingClientRect(); el.style.animation='';
+  });
+
+  // Store for CSV
+  window._lastRows    = rows;
+  window._lastInp     = inp;
+  window._lastPSK     = psk;
+  window._totalAll    = totalAll;
+  window._oneTimeComm = oneTimeComm;
+}
+
+/* ── Main calculate ─────────────────────────────────────────── */
+function calculate(){
+  const inp=readInputs();
+  if(!inp) return;
+  const result = buildSchedule(inp);
+  renderResults(inp, result);
+}
+
+/* ── Calc button + ripple ───────────────────────────────────── */
+document.getElementById('btn-calc').addEventListener('click', function(e){
+  const btn=this, rect=btn.getBoundingClientRect();
+  const r=document.createElement('span');
+  const sz=Math.max(rect.width,rect.height);
+  r.className='ripple';
+  r.style.cssText=`width:${sz}px;height:${sz}px;left:${e.clientX-rect.left-sz/2}px;top:${e.clientY-rect.top-sz/2}px`;
+  btn.appendChild(r);
+  r.addEventListener('animationend',()=>r.remove());
+  calculate();
+});
+
+/* ── Live recalc (sliders) ──────────────────────────────────── */
+function liveRecalc(){
+  if(document.getElementById('res-block').style.display!=='none') calculate();
+}
+document.getElementById('rate-sl').addEventListener('input', liveRecalc);
+document.getElementById('term-sl').addEventListener('input', liveRecalc);
+
+/* ── Schedule toggle ────────────────────────────────────────── */
+document.getElementById('sched-toggle').addEventListener('click',()=>{
+  const wrap=document.getElementById('sched-body-wrap');
+  const chev=document.getElementById('chev');
+  const open=chev.classList.toggle('open');
+  wrap.style.display=open?'block':'none';
+});
+
+/* ── CSV export ─────────────────────────────────────────────── */
+document.getElementById('btn-csv').addEventListener('click',()=>{
+  const rows=window._lastRows;
+  if(!rows||!rows.length) return;
+  const sep=';';
+  const hdr=['#','Дата','Платёж','Проценты','Тело долга','Страховка','Комиссия','Итого','Остаток'].join(sep);
+  const body=rows.map(r=>[
+    r.num, fmtD(r.date),
+    r.basePayment.toFixed(2), r.interest.toFixed(2), r.body.toFixed(2),
+    r.ins.toFixed(2), r.mcomm.toFixed(2), r.total.toFixed(2), r.balance.toFixed(2)
+  ].join(sep)).join('\n');
+  const bom='\uFEFF';
+  const blob=new Blob([bom+hdr+'\n'+body],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='kredit_grafik.csv';
+  a.click();
+});
+
+/* ── Print ──────────────────────────────────────────────────── */
+function doPrint(){
+  // open schedule before print
+  document.getElementById('sched-body-wrap').style.display='block';
+  document.getElementById('chev').classList.add('open');
+  window.print();
+}
+document.getElementById('nav-print').addEventListener('click', doPrint);
+
+/* ── Reset ──────────────────────────────────────────────────── */
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  // text/number fields
+  ['amount','rate','term','prepay-amt','down-amt','down-pct',
+   'ins-rate','ins-fixed','comm-amt','comm-pct','mcomm-amt','mcomm-pct','extra-monthly']
+  .forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.value=''; el.classList.remove('err'); }
+  });
+  ['err-amount','err-rate','err-term','err-prepay','err-down']
+  .forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=''; });
+
+  // sliders back to defaults (call bindSlider will re-init — simpler: just reset manually)
+  const rSl=document.getElementById('rate-sl');
+  const tSl=document.getElementById('term-sl');
+  rSl.value=12; document.getElementById('rate').value=12;
+  document.getElementById('rate-bubble').textContent='12 %'; slFill(rSl);
+  tSl.value=60; document.getElementById('term').value=60;
+  document.getElementById('term-bubble').textContent='60 мес.'; slFill(tSl);
+
+  // radios
+  document.getElementById('r-ann').checked=true;
+  document.getElementById('ps-term').checked=true;
+  document.getElementById('nd-no').checked=true;
+  document.getElementById('ins-base').value='initial';
+  document.getElementById('ins-fixed-wrap').style.display='none';
+  document.getElementById('first-date').value='';
+
+  // tabs
+  document.querySelectorAll('.ftab').forEach((b,i)=>b.classList.toggle('active',i===0));
+  document.querySelectorAll('.tab-panel').forEach((p,i)=>p.classList.toggle('active',i===0));
+
+  // results
+  document.getElementById('res-block').style.display='none';
+  document.getElementById('state-empty').style.display='block';
+  document.getElementById('sched-body-wrap').style.display='none';
+  document.getElementById('chev').classList.remove('open');
+  document.getElementById('sched-tbody').innerHTML='';
+  window._lastRows=null;
+});
+</script>
+</body>
+</html>
